@@ -239,6 +239,34 @@ Model → role mapping is driven by benchmark results, not vibes. Current benchm
 
 Example: If Codex scores higher on systematic code review in CIB → validator role. If Claude scores higher on relational reasoning + synthesis → orchestrator role.
 
+### tmux Session Naming Convention
+
+All HAROS orchestration runs inside tmux so Nathan can attach and watch at any time.
+
+**Format:** `t{test#}-{domain}-{role}`
+
+| Component | Values | Example |
+|-----------|--------|---------|
+| test# | 3-digit test number | `003` |
+| domain | arr, bench, impl, scout, final, etc. | `arr` |
+| role | a, b (workers), synth (synthesis), final | `a` |
+
+**Examples:**
+```
+t003-arr-a        # Test 003, ARR domain, worker A
+t003-arr-b        # Test 003, ARR domain, worker B
+t003-arr-synth    # Test 003, ARR domain, synthesis
+t003-final        # Test 003, final synthesis
+```
+
+**Attach to watch:** `tmux attach -t t003-arr-a`  
+**Detach without killing:** `Ctrl+B then D`  
+**List sessions:** `tmux ls`
+
+Every TC orchestrator starts a tmux session before touching any work. Nathan can attach to any session at any time.
+
+---
+
 ### Confirmed Headless-Compatible Agents
 
 | Agent | Headless Command | Permission Flag | Notes |
