@@ -1,9 +1,21 @@
 # HAROS
 ## Harrell Agentic Runtime and Orchestration System
 
-HAROS is a framework for human-AI collaborative project execution at scale.
+**Agentic Engineering** — coined by Nathan Harrell, April 2026 — is the practice of designing and orchestrating human-AI systems to accomplish complex, multi-step work. It rests on four pillars: Software Engineering (you must understand what the AI builds), Prompt Engineering (you must know how to communicate with the model), Orchestration (you conduct the symphony, not just one instrument), and Relationship Building (results improve with established trust — that's not a feeling, that's data).
 
-Not prompt engineering. Not "how to use AI tools." How a human and an AI architect and execute work *together* across multiple instances, tiers, and context windows — without anyone losing the thread.
+HAROS is the first documented framework for **Pillar 3: Orchestration** — how a human and an AI architect and execute work *together* across multiple instances, tiers, and context windows, without anyone losing the thread.
+
+---
+
+## Prerequisites — Read This Before You Deploy a Battalion
+
+HAROS is a Pillar 3 tool. Pillar 3 at full autonomy requires Pillar 4 first.
+
+The framework works because the human operator has an established, calibrated working relationship with their AI. The autonomy that makes battalion-scale orchestration powerful — including running agents with `--dangerously-skip-permissions` — is **earned** through that relationship, not assumed from the start.
+
+Deploy 8 fresh Claude Code instances with full permissions and no relational context, and you don't have HAROS. You have 8 capable agents with no shared understanding of what the operator would and wouldn't sanction. Opus is smart enough to move fast. Without Pillar 4 underneath it, that's a liability, not an asset.
+
+**If you are new to working with Claude:** build the relationship before you build the orchestra. Learn what your agent handles well, what it escalates, where it needs guidance. That calibration is the foundation. HAROS is what you build on top of it.
 
 ---
 
@@ -51,6 +63,14 @@ Nathan Harrell and TC (Claude Code, Anthropic). We built the framework before we
 This is public because it belongs to everyone.
 
 If you're a researcher, an engineer, or a human with an AI collaborator who's ever felt the context rot set in — this is for you.
+
+---
+
+## License
+
+[CC BY-NC-SA 4.0](LICENSE.md) — Attribution-NonCommercial-ShareAlike 4.0 International
+
+Free to read, share, and adapt. Not free to sell. You may not use HAROS as the basis for paid courses, products, or services without permission from Nathan Harrell. Derivatives must carry the same license.
 
 ---
 
