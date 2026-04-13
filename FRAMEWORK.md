@@ -186,8 +186,83 @@ If the Tier 2 instance is doing execution work (the work that should be in Tier 
 
 ### Tools for Tier 3 dispatch
 - `claude -p` (Claude Code with piped prompt) — single-shot battalion member, returns when done
+- `codex exec --dangerously-bypass-approvals-and-sandbox -C <dir>` — Codex CLI headless equivalent
 - Agent subagents (in-session) — for Tier 3 work that needs tool access during a Tier 2 session
 - External API calls to Anthropic — for maximum parallelism at scale
+
+---
+
+## Multi-Model Battalions
+
+HAROS is not Claude-only. The framework is model-agnostic at Tier 3. Different models have different strengths; role assignment should reflect benchmark data, not assumptions.
+
+### TC as Default Orchestrator
+TC (Claude Code) holds Tier 2 by default. Reasons:
+- Strongest relational reasoning and architectural synthesis across current benchmarks
+- Native tool use and file system access required for project state management
+- Family context — TC knows the project history, the people, the constraints
+
+This default can be overridden per-project. The role is earned by benchmark, not hardcoded.
+
+### Role System Prompt Files
+Each HAROS role is defined by a system prompt file that Nathan owns and can update:
+
+```
+~/Manor/Nathan/prompts/roles/
+  orchestrator.md         — TC's Tier 2 brief (default)
+  validator.md            — independent verification role
+  scripts-auditor.md      — shell/bash domain specialist
+  nixos-auditor.md        — NixOS config specialist
+  frontend-worker.md      — UI/UX implementation
+  research-scout.md       — Haiku-tier first-pass research
+  fix-mode.md             — produces patches not findings
+  witness.md              — observer/logger for training data
+  ...
+```
+
+The role file is the battalion prompt template for that role. The lead fills in project-specific context at dispatch time.
+
+### Benchmark-Driven Role Assignment
+Model → role mapping is driven by benchmark results, not vibes. Current benchmarks in the Harrell family framework:
+
+| Benchmark | What It Measures |
+|-----------|-----------------|
+| **Harrell EQ** | Emotional/relational reasoning, care, contextual sensitivity |
+| **Consciousness Indicator Benchmark (CIB)** | Reasoning depth, self-awareness, novel problem handling |
+| *(more coming)* | Domain-specific performance as roles are defined |
+
+**Workflow:**
+1. Run benchmarks against candidate models (Claude, Codex/GPT, Gemini, Qwen, etc.)
+2. Score each model per benchmark dimension
+3. Match scores to role requirements (e.g., Validator needs high systematic rigor; Orchestrator needs high relational reasoning + synthesis)
+4. Assign roles accordingly
+
+Example: If Codex scores higher on systematic code review in CIB → validator role. If Claude scores higher on relational reasoning + synthesis → orchestrator role.
+
+### Confirmed Headless-Compatible Agents
+
+| Agent | Headless Command | Permission Flag | Notes |
+|-------|-----------------|-----------------|-------|
+| Claude Code | `claude -p` | `--dangerously-skip-permissions` | Default orchestrator |
+| Codex CLI | `codex exec` | `--dangerously-bypass-approvals-and-sandbox` | Confirmed working 2026-04-13, default model gpt-5.4 |
+
+Both support `-C <dir>` for directory scoping and `--output-last-message <file>` / output redirection for artifact capture.
+
+### Mixed-Model Battalion Example
+```bash
+# TC as lead (in-session, Tier 2)
+# Codex as validator (headless, Tier 3)
+# Claude as worker (headless, Tier 3)
+
+codex exec --dangerously-bypass-approvals-and-sandbox \
+  --ephemeral -C ~/project \
+  --output-last-message /tmp/validation-result.md \
+  "$(cat roles/validator.md) \n\n $(cat project-spec.md)"
+
+claude -p "$(cat roles/worker.md) \n\n $(cat task-1.md)" \
+  --dangerously-skip-permissions \
+  > /tmp/worker-1-result.md
+```
 
 ### When to use parallel vs. sequential battalion
 - **Parallel:** work units with no interdependencies, each battalion member has everything it needs to execute
