@@ -292,6 +292,166 @@ claude -p "$(cat roles/worker.md) \n\n $(cat task-1.md)" \
   > /tmp/worker-1-result.md
 ```
 
+---
+
+## The Corps Formation
+
+The Corps formation is for projects large enough to require multiple specialized teams, each led by a TC instance, coordinated by a human at Tier 1.
+
+### The Problem It Solves
+
+A standard battalion has TC as lead and workers as Tier 3. That works for single-domain work. But real products have multiple domains — backend logic, frontend UI, infrastructure, review — and those domains are better served by models with different strengths. The Corps formation makes this explicit: **each domain gets a team lead who owns that domain**, and cross-model handoffs are built into the workflow by design.
+
+### Structure
+
+```
+Tier 1: Human (Nathan)
+    │
+    └── Orchestrator-TC (top-level coordinator)
+            ├── deliberates with Nathan to select config + scope
+            ├── returns tmux/GRIND session names for observability
+            ├── spawns Team Leads dynamically based on deliberation
+            ├── aggregates Team Lead reports at the end
+            │
+            ├── TC Team Lead — backend / logic domain
+            │       ├── Research agent (dedicated, per team lead)
+            │       ├── Worker subagents (Claude or Codex, scoped tasks)
+            │       ├── Validates worker output *with context*
+            │       ├── Hands work to Codex Reviewer for adversarial pass
+            │       ├── Integrates Codex findings, re-dispatches if needed
+            │       └── Reports completed + validated work to Orchestrator-TC
+            │
+            ├── Gemini Team Lead — frontend / design domain [conditional]
+            │       ├── Research agent (dedicated)
+            │       ├── Gemini workers for UI implementation
+            │       ├── Validates design output against brief
+            │       ├── Hands frontend work to TC Team Lead for integration
+            │       └── Reports to Orchestrator-TC
+            │
+            └── Codex Reviewer — adversarial review [cross-cutting]
+                    ├── Receives completed work from any Team Lead
+                    ├── Reviews independently, never saw implementation
+                    └── Returns issues list → Team Lead → workers if needed
+```
+
+**Universal validation pipeline** (applies to every configuration, not just Corps):
+
+```
+Workers → Team-Lead TC (validate with context)
+       → Codex Reviewer (adversarial, fresh eyes)
+       → Team-Lead TC (integrate findings)
+       → Orchestrator-TC (aggregate across teams)
+       → Nathan
+```
+
+Nothing ships to Nathan without this loop. Codex is the universal second set of eyes.
+
+### The Four Roles
+
+**Orchestrator-TC (top-level coordinator)**
+- Spawned first, lives in pane 1 of the GRIND session
+- Deliberates with Nathan via HCSF to pick the right configuration and scope the work
+- Spawns Team Leads dynamically as the deliberation converges — does NOT pre-fill a layout
+- Returns tmux/GRIND session names for each spawned team so Nathan can attach and observe
+- Aggregates validated output from Team Leads and hands the final result to Nathan
+
+**TC Team Lead**
+- Owns a domain brief and its success criteria
+- Has a dedicated research agent (separate instance) that surfaces relevant code, docs, prior decisions before work starts
+- Dispatches worker subagents scoped to well-defined features using HCSF dispatch docs
+- Validates returned work *with context* — this is intentional. Unlike the Factory.ai model, the TC team lead is NOT a fresh agent. It knows the project. Validation-with-context catches integration problems; fresh-agent validation catches implementation problems. Both are needed.
+- Hands validated work to Codex Reviewer for the adversarial pass
+- Integrates Codex findings and decides what goes back to workers
+- Reports to Orchestrator-TC only after the full validation loop completes
+
+**Codex Reviewer (GPT-5.4)**
+- Adversarial, fresh eyes, never saw the implementation
+- Reviews code for correctness, security, edge cases, and architectural consistency
+- Does NOT implement fixes — surfaces issues only
+- Returns a structured findings list, not a rewrite
+- Runs headless (`codex` CLI, non-interactive) because it doesn't need to collaborate, only to report
+
+**Gemini Team Lead (Gemini 3.1)** — frontend/design domain only
+- Gemini 3.1 is a design powerhouse: exceptional at CSS, visual layout, and design system consistency
+- Has a dedicated research agent (like TC Team Leads)
+- Dispatches Gemini workers for UI implementation
+- Validates design output against the design brief
+- Hands completed frontend work to TC Team Lead for backend integration
+- Triggered only when the project has meaningful frontend scope — do not spin up a Gemini team for a CLI tool
+
+### Trigger Conditions
+
+Orchestrator-TC uses this table when deliberating with Nathan on configuration choice. Every row uses the universal validation pipeline — only the top-layer topology differs.
+
+| Task shape | Formation |
+|---|---|
+| Single domain, simple scope | Standard battalion (one Team-Lead TC + workers) |
+| Multi-domain with frontend/UI scope | **Full Corps** (default 80% case for real products) |
+| Linear pipeline with genuine dependencies | Funnel *(planned)* |
+| Correctness critical, two-agent cross-check | Peer Review *(planned)* |
+| Skill-based decomposition (read/write/test/doc) | Specialist Bench *(planned)* |
+| Large codebase, conserve tokens | Scout *(planned)* |
+| Need audit trail / training data | Witness *(planned)* |
+| Variable-stakes event routing | Escalation Stack *(planned)* |
+
+### HCSF Dispatch Docs
+
+Before any worker is dispatched, the TC Team Lead writes an **HCSF document** for each unit of work:
+
+- **H (Heading)** — what this task is called; the mission label
+- **C (Context)** — minimum necessary background; why this exists, what came before
+- **S (Spec)** — the deliverable; specific, measurable, testable. This IS the contract — what "done" looks like, what Codex validates against
+- **F (Format)** — how the worker structures its output back up the chain
+
+HCSF is the universal agent communication format across HAROS and GRIND. It works in both directions: **human → TC** (via GRIND Terminal's HCSF input mode) and **TC → worker** (as the battalion dispatch format). Same shape, same language, all the way down the chain.
+
+Workers implement against the S field. The Codex Reviewer validates against the S field. The Gemini Team Lead validates UI against the S field. Everyone is looking at the same document.
+
+HCSF docs are written to disk before the first worker spawns. One file per task, stored under the project state directory.
+
+This replaces "handoff contracts" as a concept — HCSF is strictly better because it wraps the contract (S) in context (C) and specifies the return format (F), giving workers everything they need in one place instead of a bare assertion.
+
+### Naming Convention for Corps Sessions
+
+```
+t{#}-{team}-{role}
+
+t004-backend-lead       # TC team lead, backend domain
+t004-backend-worker-a   # backend worker A
+t004-backend-worker-b   # backend worker B
+t004-codex-review       # Codex adversarial reviewer
+t004-frontend-lead      # Gemini team lead, frontend domain
+t004-frontend-worker-a  # Gemini frontend worker
+```
+
+### What This Is Not
+
+The Corps formation is not Factory.ai Missions. Key differences:
+- TC validates *with context*, not as a fresh agent
+- Codex is the adversarial layer, not a fresh Claude
+- Gemini handles design — the right tool, not just another Claude
+- Human stays in the loop via tmux/GRIND observability; nothing is fully autonomous
+- The goal is the right output, not the most code in the least wall time
+
+---
+
+## Other Configurations (planned, post-MVP)
+
+Corps is the 80% default. For problem shapes that don't match Corps, six additional configurations are planned. Each reuses the universal validation pipeline (Workers → Team-Lead → Codex → Team-Lead → Orchestrator) and varies only the top-layer topology.
+
+| Configuration | Topology | When to use |
+|---|---|---|
+| **Funnel** | Sequential pipeline: TC1's output becomes TC2's input, and so on | Genuine linear dependencies (review → refactor → test-write). Risk: one bad output poisons downstream. |
+| **Peer Review** | Two agents work the same task independently; a third synthesizes | Correctness > speed. Burns more tokens but catches hallucinations. |
+| **Specialist Bench** | Decompose by skill, not domain — one agent only reads, one only writes, one only tests, one only documents; same artifact handed off in sequence | Greenfield builds where you want quality gates between phases. |
+| **Scout** | Haiku does a broad shallow pass first, flags hot spots; Sonnet/Opus deploy only to flagged areas | Large codebases where you don't want to burn Opus tokens reading boilerplate. |
+| **Witness** | An extra agent's only job is to watch the others and write a real-time log — decisions, skips, confidence levels. No synthesis, just observation. | Auditability and training data (Thursday). |
+| **Escalation Stack** | Haiku handles routine, Sonnet handles notable, Opus handles critical. Watchdog picks the tier before routing. | Event-driven work with variable stakes per event. `tc-watchdog` already does a version of this. |
+
+Each is a YAML layout template + prompt file + trigger-condition entry. No new infrastructure should be needed once the Corps MVP validates the harness design.
+
+---
+
 ### When to use parallel vs. sequential battalion
 - **Parallel:** work units with no interdependencies, each battalion member has everything it needs to execute
 - **Sequential:** when output from one unit is required as input for another
