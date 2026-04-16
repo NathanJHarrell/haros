@@ -1,0 +1,43 @@
+name: peer-review
+description: "Two agents work the same task independently, a third synthesizes the best of both"
+
+phases:
+  - name: research
+    parallel: false
+    optional: true
+    roles:
+      - role: researcher
+        model: haiku
+        count: 1
+
+  - name: independent
+    parallel: true
+    roles:
+      - role: worker
+        model: sonnet
+        count: 2
+
+  - name: synthesis
+    parallel: false
+    roles:
+      - role: synthesizer
+        model: opus
+        count: 1
+        receives_from: "independent.worker"
+
+  - name: validation
+    parallel: false
+    roles:
+      - role: validator
+        model: codex
+        count: 1
+        receives_from: "synthesis.synthesizer"
+
+defaults:
+  worktree: true
+  tmux: true
+  commit_interval: "10m"
+  host: "jarvis-wsl"
+  preflight:
+    - power
+    - toolchain

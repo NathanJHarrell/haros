@@ -1,0 +1,23 @@
+name: witness
+description: "Overlay — adds an observation agent that logs decisions, skips, and confidence across all phases"
+
+# Witness is an OVERLAY, not a standalone config. Apply it on top of any
+# other config to get a real-time decision log. The witness never modifies
+# code or makes decisions — it only observes and documents.
+#
+# Usage: tc-corps launch --config corps --overlay witness ...
+
+overlays:
+  - name: witness
+    role: witness
+    model: haiku
+    observes: "all"
+
+# No phases of its own. This config is only valid as an --overlay argument.
+# The CLI merges overlays into the base config at launch time.
+
+defaults:
+  worktree: false  # witness doesn't need its own worktree
+  tmux: true       # witness runs in its own tmux session for live observation
+  commit_interval: "5m"  # more frequent logging
+  host: "jarvis-wsl"

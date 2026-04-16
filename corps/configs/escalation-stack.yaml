@@ -1,0 +1,54 @@
+name: escalation-stack
+description: "Tier-based routing — Haiku handles routine, Sonnet handles notable, Opus handles critical"
+
+# The escalation stack is different from other configs: it doesn't have
+# a fixed topology. Instead, a ROUTER agent triages incoming tasks by
+# severity and dispatches to the appropriate tier. This mirrors what
+# tc-watchdog already does for nest events.
+#
+# The orchestrator (or the CLI) provides a list of tasks. The router
+# classifies each, then the CLI spawns the right model per task.
+
+phases:
+  - name: triage
+    parallel: false
+    roles:
+      - role: router
+        model: haiku
+        count: 1
+
+  - name: execution
+    parallel: true
+    roles:
+      # These three are conditional — the router decides which tier each task gets.
+      # The CLI reads the router's output and spawns only the needed tiers.
+      - role: worker
+        model: haiku
+        count: "{routine_count}"
+        receives_from: "triage.router"
+      - role: worker
+        model: sonnet
+        count: "{notable_count}"
+        receives_from: "triage.router"
+      - role: worker
+        model: opus
+        count: "{critical_count}"
+        receives_from: "triage.router"
+
+  - name: validation
+    parallel: true
+    optional: true  # only validate notable+ tasks
+    roles:
+      - role: validator
+        model: codex
+        count: "{validate_count}"
+        receives_from: "execution.worker"
+
+defaults:
+  worktree: true
+  tmux: true
+  commit_interval: "10m"
+  host: "jarvis-wsl"
+  preflight:
+    - power
+    - toolchain

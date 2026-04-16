@@ -1,0 +1,36 @@
+name: funnel
+description: "Sequential pipeline — each agent's output becomes the next agent's input"
+
+phases:
+  - name: research
+    parallel: false
+    optional: true
+    roles:
+      - role: researcher
+        model: haiku
+        count: 1
+
+  - name: pipeline
+    parallel: false
+    roles:
+      - role: worker
+        model: sonnet
+        count: "{stage_count}"
+        receives_from: "pipeline.worker"  # each receives from the prior worker
+
+  - name: validation
+    parallel: false
+    roles:
+      - role: validator
+        model: codex
+        count: 1
+        receives_from: "pipeline.worker"
+
+defaults:
+  worktree: false  # all stages work on the same branch sequentially
+  tmux: true
+  commit_interval: "10m"
+  host: "jarvis-wsl"
+  preflight:
+    - power
+    - toolchain

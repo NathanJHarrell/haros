@@ -1,0 +1,37 @@
+name: scout
+description: "Cheap broad pass identifies hot spots, then targeted agents hit only what matters"
+
+phases:
+  - name: scout
+    parallel: false
+    optional: false
+    roles:
+      - role: scout
+        model: haiku
+        count: 1
+
+  - name: execution
+    parallel: true
+    roles:
+      - role: team-lead
+        model: sonnet
+        count: "{flagged_count}"
+        receives_from: "scout.scout"
+        spawns_workers: true
+
+  - name: validation
+    parallel: true
+    roles:
+      - role: validator
+        model: codex
+        count: "{flagged_count}"
+        receives_from: "execution.team-lead"
+
+defaults:
+  worktree: true
+  tmux: true
+  commit_interval: "10m"
+  host: "jarvis-wsl"
+  preflight:
+    - power
+    - toolchain

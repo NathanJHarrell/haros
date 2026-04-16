@@ -1,0 +1,59 @@
+name: specialist-bench
+description: "Skill-based decomposition — reader, writer, tester, documenter in sequence"
+
+phases:
+  - name: research
+    parallel: false
+    optional: true
+    roles:
+      - role: researcher
+        model: haiku
+        count: 1
+
+  - name: read
+    parallel: false
+    roles:
+      - role: specialist-reader
+        model: sonnet
+        count: 1
+
+  - name: write
+    parallel: false
+    roles:
+      - role: specialist-writer
+        model: sonnet
+        count: 1
+        receives_from: "read.specialist-reader"
+
+  - name: test
+    parallel: false
+    roles:
+      - role: specialist-tester
+        model: sonnet
+        count: 1
+        receives_from: "write.specialist-writer"
+
+  - name: document
+    parallel: false
+    roles:
+      - role: specialist-documenter
+        model: haiku
+        count: 1
+        receives_from: "test.specialist-tester"
+
+  - name: validation
+    parallel: false
+    roles:
+      - role: validator
+        model: codex
+        count: 1
+        receives_from: "test.specialist-tester"
+
+defaults:
+  worktree: false  # all specialists work on the same branch sequentially
+  tmux: true
+  commit_interval: "10m"
+  host: "jarvis-wsl"
+  preflight:
+    - power
+    - toolchain

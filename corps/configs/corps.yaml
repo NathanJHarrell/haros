@@ -1,0 +1,36 @@
+name: corps
+description: "Standard Corps — parallel team leads with independent scopes, Codex validation"
+
+phases:
+  - name: research
+    parallel: false
+    optional: true
+    roles:
+      - role: researcher
+        model: haiku
+        count: 1
+
+  - name: execution
+    parallel: true
+    roles:
+      - role: team-lead
+        model: sonnet
+        count: "{team_count}"
+        spawns_workers: true
+
+  - name: validation
+    parallel: true
+    roles:
+      - role: validator
+        model: codex
+        count: "{team_count}"
+        receives_from: "execution.team-lead"
+
+defaults:
+  worktree: true
+  tmux: true
+  commit_interval: "10m"
+  host: "jarvis-wsl"
+  preflight:
+    - power
+    - toolchain
