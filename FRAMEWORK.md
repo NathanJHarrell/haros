@@ -267,12 +267,32 @@ Every TC orchestrator starts a tmux session before touching any work. Nathan can
 
 ---
 
+### Research Agent: Perplexity MCP (added April 16, 2026)
+
+The research agent runs BEFORE Charmanders are dispatched. Charmeleons decide if research is needed.
+
+**Setup:**
+```bash
+claude mcp add perplexity \
+  --env PERPLEXITY_API_KEY="<key>" \
+  -- npx -y @perplexity-ai/mcp-server
+```
+
+**Available tools:**
+- `perplexity_search` — web search with rankings, URLs, snippets (quick facts)
+- `perplexity_ask` — conversational AI + web search via sonar-pro (questions needing context)
+- `perplexity_research` — deep research with citations via sonar-deep-research (complex analysis)
+- `perplexity_reason` — advanced problem-solving via sonar-reasoning-pro (logical analysis)
+
+**Integration:** Research output is written to a brief file on disk. Charmanders read it alongside their HCSF dispatch doc. The research agent is a dedicated instance per Charmeleon — not shared across teams.
+
 ### Confirmed Headless-Compatible Agents
 
 | Agent | Headless Command | Permission Flag | Notes |
 |-------|-----------------|-----------------|-------|
 | Claude Code | `claude -p` | `--dangerously-skip-permissions` | Default orchestrator |
 | Codex CLI | `codex exec` | `--dangerously-bypass-approvals-and-sandbox` | Confirmed working 2026-04-13, default model gpt-5.4 |
+| Perplexity | MCP server via `npx` | API key via env | Research agent, not headless CLI — runs as MCP tool inside Claude |
 
 Both support `-C <dir>` for directory scoping and `--output-last-message <file>` / output redirection for artifact capture.
 
